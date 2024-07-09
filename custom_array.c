@@ -1,4 +1,5 @@
 #include "custom_array.h"
+#include "error_handling.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -29,6 +30,7 @@ void initMemoryPool(size_t element_size, size_t element_count) {
 
 void *allocateFromPool() {
     if (pool.free_count == 0) {
+        logError("Memory pool exhausted");
         return NULL;
     }
     return pool.free_list[--pool.free_count];
@@ -49,7 +51,7 @@ void destroyMemoryPool() {
 void initArray(CustomArray *array, size_t initial_capacity) {
     array->data = (int *)allocateFromPool();
     if (!array->data) {
-        fprintf(stderr, "Memory allocation failed\n");
+        logError("Memory allocation failed");
         exit(EXIT_FAILURE);
     }
     array->size = 0;
@@ -57,7 +59,7 @@ void initArray(CustomArray *array, size_t initial_capacity) {
     array->deleted_count = 0;
     array->deleted_indices = (size_t *)allocateFromPool();
     if (!array->deleted_indices) {
-        fprintf(stderr, "Memory allocation failed\n");
+        logError("Memory allocation failed");
         exit(EXIT_FAILURE);
     }
     pthread_mutex_init(&array->lock, NULL);
@@ -83,7 +85,7 @@ void insertElement(CustomArray *array, int element) {
 void deleteElement(CustomArray *array, size_t index) {
     pthread_mutex_lock(&array->lock);
     if (index >= array->size) {
-        fprintf(stderr, "Index out of bounds\n");
+        logError("Index out of bounds");
         pthread_mutex_unlock(&array->lock);
         return;
     }
@@ -98,7 +100,7 @@ void deleteElement(CustomArray *array, size_t index) {
 int getElement(CustomArray *array, size_t index) {
     pthread_mutex_lock(&array->lock);
     if (index >= array->size) {
-        fprintf(stderr, "Index out of bounds\n");
+        logError("Index out of bounds");
         pthread_mutex_unlock(&array->lock);
         return -1;
     }
@@ -111,7 +113,7 @@ int getElement(CustomArray *array, size_t index) {
 void resizeArray(CustomArray *array, size_t new_capacity) {
     int *new_data = (int *)allocateFromPool();
     if (!new_data) {
-        fprintf(stderr, "Memory reallocation failed\n");
+        logError("Memory reallocation failed");
         exit(EXIT_FAILURE);
     }
     for (size_t i = 0; i < array->size; i++) {
@@ -166,7 +168,7 @@ void insertElementLockFree(CustomArray *array, int element) {
 
 void deleteElementLockFree(CustomArray *array, size_t index) {
     if (index >= array->size) {
-        fprintf(stderr, "Index out of bounds\n");
+        logError("Index out of bounds");
         return;
     }
     for (size_t i = index; i < array->size - 1; i++) {
@@ -177,7 +179,7 @@ void deleteElementLockFree(CustomArray *array, size_t index) {
 
 int getElementLockFree(CustomArray *array, size_t index) {
     if (index >= array->size) {
-        fprintf(stderr, "Index out of bounds\n");
+        logError("Index out of bounds");
         return -1;
     }
     return array->data[index];

@@ -1,6 +1,8 @@
 #include "custom_array.h"
+#include "error_handling.h"
 #include <stdio.h>
 #include <pthread.h>
+
 #define MEMORY_POOL_SIZE 4
 
 void printArray(CustomArray *array) {
@@ -12,7 +14,6 @@ void printArray(CustomArray *array) {
 
 void *threadFunction(void *arg) {
     CustomArray *array = (CustomArray *)arg;
-    
     for (int i = 0; i < MEMORY_POOL_SIZE; i++) {
         insertElement(array, i);
     }
@@ -20,7 +21,7 @@ void *threadFunction(void *arg) {
 }
 
 int main() {
-    // Initialize memory pool with # elements of size `int`
+    // Initialize memory pool with a smaller size to trigger out-of-memory errors
     initMemoryPool(sizeof(int) * MEMORY_POOL_SIZE, MEMORY_POOL_SIZE);
 
     CustomArray array;
@@ -40,7 +41,17 @@ int main() {
     
     printf("Elements inserted concurrently: ");
     printArray(&array);
+
+    // Trigger out-of-bounds access error
+    int value = getElement(&array, 100);
+    if (value == -1) {
+        printf("Error logged for out-of-bounds access\n");
+    }
     
+    // Trigger deletion error
+    deleteElement(&array, 100);
+    printf("Attempted to delete out-of-bounds index\n");
+
     // Access
     printf("Access element at index 2: %d\n", getElement(&array, 2));
     
@@ -53,12 +64,12 @@ int main() {
     garbageCollect(&array);
     printf("After garbage collection: ");
     printArray(&array);
-
+    
     // Final cleanup
     freeArray(&array);
     destroyMemoryPool();
     printf("Array memory freed.\n");
-    
+
     return 0;
 }
 
