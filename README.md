@@ -1,19 +1,21 @@
 
-Custom Array Project
-====================
+Custom Array Project with Error Handling
+========================================
 
 Overview
 --------
-This project implements a custom dynamic array in C with advanced memory handling. 
-It includes a garbage collection mechanism to reclaim memory from deleted elements 
-and uses a memory pool to manage small memory allocations efficiently. 
-Additionally, it provides thread-safe versions of the operations and a lock-free version for high-performance scenarios.
+This project implements a custom dynamic array in C with advanced memory handling and error logging. 
+It includes a garbage collection mechanism to reclaim memory from deleted elements, uses a memory pool 
+to manage small memory allocations efficiently, and provides thread-safe versions of the operations 
+along with error logging functionalities.
 
 Files
 -----
 - custom_array.h: Header file containing the declarations of the custom array and memory pool functions.
 - custom_array.c: Source file implementing the custom array functionalities.
-- main.c: Source file containing the main function to demonstrate the usage of the custom array.
+- error_handling.h: Header file containing the declarations for error handling functions.
+- error_handling.c: Source file implementing error handling functionalities.
+- main.c: Source file containing the main function to demonstrate the usage of the custom array and error logging.
 - CMakeLists.txt: CMake build configuration file.
 
 Requirements
@@ -73,17 +75,18 @@ The custom array implementation provides the following functionalities:
 8. Concurrency:
    - Implement thread-safe versions of insertion, deletion, and access operations.
    - Use synchronization primitives (e.g., mutexes) to ensure thread safety.
-   - Implement a lock-free version of the container for high-performance scenarios.
+
+9. Error Handling:
+   - Log errors for out-of-memory situations, invalid index access, and memory reallocation failures.
+   - The log messages are written to "error_log.txt" without timestamps.
 
 Define
 ------
 In the code, a `#define` is used for the memory pool size:
 
 ```c
-#define MEMORY_POOL_SIZE 1000
+#define MEMORY_POOL_SIZE 4
 ```
-
-This can be adjusted based on your needs.
 
 Function Declarations
 ---------------------
@@ -96,7 +99,7 @@ custom_array.h:
 #include <stdlib.h>
 #include <pthread.h>
 
-#define MEMORY_POOL_SIZE 1000  // Adjust this size based on your needs
+#define MEMORY_POOL_SIZE 4  // Adjust this size based on your needs
 
 typedef struct {
     int *data;
@@ -130,32 +133,46 @@ int getElementLockFree(CustomArray *array, size_t index);
 #endif // CUSTOM_ARRAY_H
 ```
 
+error_handling.h:
+
+```c
+#ifndef ERROR_HANDLING_H
+#define ERROR_HANDLING_H
+
+void logError(const char *message);
+
+#endif // ERROR_HANDLING_H
+```
+
 Usage Example
 -------------
 main.c:
 
 ```c
 #include "custom_array.h"
+#include "error_handling.h"
 #include <stdio.h>
 #include <pthread.h>
 
+#define MEMORY_POOL_SIZE 4
+
 void printArray(CustomArray *array) {
     for (size_t i = 0; i < array->size; i++) {
-        printf("%d ", getElement(array, i));
+        printf("%d 	", getElement(array, i));
     }
     printf("\n");
 }
 
 void *threadFunction(void *arg) {
     CustomArray *array = (CustomArray *)arg;
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < MEMORY_POOL_SIZE; i++) {
         insertElement(array, i);
     }
     return NULL;
 }
 
 int main() {
-    // Initialize memory pool with MEMORY_POOL_SIZE elements of size `int`
+    // Initialize memory pool with a smaller size to trigger out-of-memory errors
     initMemoryPool(sizeof(int) * MEMORY_POOL_SIZE, MEMORY_POOL_SIZE);
 
     CustomArray array;
@@ -163,7 +180,16 @@ int main() {
     // Initialization
     initArray(&array, 4);
     printf("Array initialized with capacity 4.\n");
-    
+
+    // Simulate memory pool exhausted error
+    for (int i = 0; i < MEMORY_POOL_SIZE * 2; i++) {
+        int *data = (int *)allocateFromPool();
+        if (!data) {
+            logError("Memory pool exhausted");
+            printf("Error logged: Memory pool exhausted\n");
+        }
+    }
+
     // Create threads for concurrent insertion
     pthread_t thread1, thread2;
     pthread_create(&thread1, NULL, threadFunction, &array);
@@ -175,7 +201,30 @@ int main() {
     
     printf("Elements inserted concurrently: ");
     printArray(&array);
+
+    // Trigger out-of-bounds access error
+    int value = getElement(&array, 100);
+    if (value == -1) {
+        printf("Error logged for out-of-bounds access\n");
+    }
     
+    // Trigger deletion error
+    deleteElement(&array, 100);
+    printf("Attempted to delete out-of-bounds index\n");
+
+    // Trigger memory allocation failed error
+    CustomArray smallArray;
+    initArray(&smallArray, 1);
+    insertElement(&smallArray, 1);
+    insertElement(&smallArray, 2);  // This should expand the array
+    freeArray(&smallArray);
+
+    // Trigger memory reallocation failed error by attempting to resize with insufficient memory
+    int *temp_data = array.data;
+    array.data = NULL;  // Force a reallocation failure scenario
+    resizeArray(&array, 10);
+    array.data = temp_data;  // Restore original data for cleanup
+
     // Access
     printf("Access element at index 2: %d\n", getElement(&array, 2));
     
@@ -193,7 +242,7 @@ int main() {
     freeArray(&array);
     destroyMemoryPool();
     printf("Array memory freed.\n");
-    
+
     return 0;
 }
 ```
@@ -203,5 +252,6 @@ Notes
 - Ensure that the memory pool is initialized before using the custom array.
 - The garbage collection function should be called periodically to reclaim memory from deleted elements.
 
+Contact
 -------
-For any questions or issues, please contact Ahmed Abdelghany at [ahmedabdelghany15@gmail.com].
+For any questions or issues, please contact Ahmed Abdelghany at ahmedabdelghany15@gmail.com
