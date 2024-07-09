@@ -41,6 +41,9 @@ int main() {
     printf("Element at index 1 deleted: ");
     printArray(&array);
     
+    // Final cleanup
+    freeArray(&array);
+    printf("Array memory freed.\n");
     
     return 0;
 }

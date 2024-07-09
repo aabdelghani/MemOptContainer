@@ -57,6 +57,7 @@ void resizeArray(CustomArray *array, size_t new_capacity) {
 // Free the array memory
 void freeArray(CustomArray *array) {
     free(array->data);
+    array->data = NULL;
     array->size = 0;
     array->capacity = 0;
 }
