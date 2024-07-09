@@ -6,7 +6,8 @@ Overview
 --------
 This project implements a custom dynamic array in C with advanced memory handling. 
 It includes a garbage collection mechanism to reclaim memory from deleted elements 
-and uses a memory pool to manage small memory allocations efficiently.
+and uses a memory pool to manage small memory allocations efficiently. 
+Additionally, it provides thread-safe versions of the operations and a lock-free version for high-performance scenarios.
 
 Files
 -----
@@ -19,6 +20,7 @@ Requirements
 ------------
 - CMake 3.10 or higher
 - C compiler (GCC recommended)
+- pthread library
 
 Instructions
 ------------
@@ -68,6 +70,21 @@ The custom array implementation provides the following functionalities:
 7. Memory Pool:
    - Manage small memory allocations efficiently using a memory pool.
 
+8. Concurrency:
+   - Implement thread-safe versions of insertion, deletion, and access operations.
+   - Use synchronization primitives (e.g., mutexes) to ensure thread safety.
+   - Implement a lock-free version of the container for high-performance scenarios.
+
+Define
+------
+In the code, a `#define` is used for the memory pool size:
+
+```c
+#define MEMORY_POOL_SIZE 1000
+```
+
+This can be adjusted based on your needs.
+
 Function Declarations
 ---------------------
 custom_array.h:
@@ -77,6 +94,9 @@ custom_array.h:
 #define CUSTOM_ARRAY_H
 
 #include <stdlib.h>
+#include <pthread.h>
+
+#define MEMORY_POOL_SIZE 1000  // Adjust this size based on your needs
 
 typedef struct {
     int *data;
@@ -84,6 +104,7 @@ typedef struct {
     size_t capacity;
     size_t deleted_count;  // Track the number of deleted elements
     size_t *deleted_indices;  // Track the indices of deleted elements
+    pthread_mutex_t lock;  // Mutex for thread safety
 } CustomArray;
 
 // Function declarations for custom array
@@ -101,6 +122,11 @@ void *allocateFromPool();
 void freeToPool(void *element);
 void destroyMemoryPool();
 
+// Function declarations for lock-free custom array (for high-performance scenarios)
+void insertElementLockFree(CustomArray *array, int element);
+void deleteElementLockFree(CustomArray *array, size_t index);
+int getElementLockFree(CustomArray *array, size_t index);
+
 #endif // CUSTOM_ARRAY_H
 ```
 
@@ -111,6 +137,7 @@ main.c:
 ```c
 #include "custom_array.h"
 #include <stdio.h>
+#include <pthread.h>
 
 void printArray(CustomArray *array) {
     for (size_t i = 0; i < array->size; i++) {
@@ -119,9 +146,17 @@ void printArray(CustomArray *array) {
     printf("\n");
 }
 
+void *threadFunction(void *arg) {
+    CustomArray *array = (CustomArray *)arg;
+    for (int i = 0; i < 1000; i++) {
+        insertElement(array, i);
+    }
+    return NULL;
+}
+
 int main() {
-    // Initialize memory pool with 100 elements of size `int`
-    initMemoryPool(sizeof(int) * 100, 100);
+    // Initialize memory pool with MEMORY_POOL_SIZE elements of size `int`
+    initMemoryPool(sizeof(int) * MEMORY_POOL_SIZE, MEMORY_POOL_SIZE);
 
     CustomArray array;
     
@@ -129,22 +164,16 @@ int main() {
     initArray(&array, 4);
     printf("Array initialized with capacity 4.\n");
     
-    // Insertion
-    insertElement(&array, 10);
-    insertElement(&array, 20);
-    insertElement(&array, 30);
-    insertElement(&array, 40);
-    printf("Elements inserted: ");
-    printArray(&array);
+    // Create threads for concurrent insertion
+    pthread_t thread1, thread2;
+    pthread_create(&thread1, NULL, threadFunction, &array);
+    pthread_create(&thread2, NULL, threadFunction, &array);
+
+    // Wait for threads to finish
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
     
-    // Resize
-    printf("Resizing array to capacity 10.\n");
-    resizeArray(&array, 10);
-    printf("New capacity: %zu\n", array.capacity);
-    
-    // Insertion after resize
-    insertElement(&array, 50);
-    printf("Element 50 inserted after resizing: ");
+    printf("Elements inserted concurrently: ");
     printArray(&array);
     
     // Access
@@ -174,6 +203,5 @@ Notes
 - Ensure that the memory pool is initialized before using the custom array.
 - The garbage collection function should be called periodically to reclaim memory from deleted elements.
 
-Contact
 -------
-For any questions or issues, please contact [Ahmed Abdelghany] at [ahmedabdelghany15@gmail.com].
+For any questions or issues, please contact Ahmed Abdelghany at [ahmedabdelghany15@gmail.com].
