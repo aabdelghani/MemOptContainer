@@ -9,6 +9,9 @@ void printArray(CustomArray *array) {
 }
 
 int main() {
+    // Initialize memory pool with 100 elements of size `int`
+    initMemoryPool(sizeof(int) * 100, 100);
+
     CustomArray array;
     
     // Initialization
@@ -40,9 +43,15 @@ int main() {
     deleteElement(&array, 1);
     printf("Element at index 1 deleted: ");
     printArray(&array);
-    
+
+    // Garbage collection
+    garbageCollect(&array);
+    printf("After garbage collection: ");
+    printArray(&array);
+
     // Final cleanup
     freeArray(&array);
+    destroyMemoryPool();
     printf("Array memory freed.\n");
     
     return 0;
