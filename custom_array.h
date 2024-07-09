@@ -1,8 +1,14 @@
 #ifndef CUSTOM_ARRAY_H
 #define CUSTOM_ARRAY_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdlib.h>
 #include <pthread.h>
+
+#define MEMORY_POOL_SIZE 4  // Adjust this size based on your needs
 
 typedef struct {
     int *data;
@@ -32,6 +38,10 @@ void destroyMemoryPool();
 void insertElementLockFree(CustomArray *array, int element);
 void deleteElementLockFree(CustomArray *array, size_t index);
 int getElementLockFree(CustomArray *array, size_t index);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // CUSTOM_ARRAY_H
 
