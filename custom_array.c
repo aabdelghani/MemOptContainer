@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <pthread.h>
 
 // Memory pool structure and functions
 typedef struct MemoryPool {
@@ -59,10 +60,12 @@ void initArray(CustomArray *array, size_t initial_capacity) {
         fprintf(stderr, "Memory allocation failed\n");
         exit(EXIT_FAILURE);
     }
+    pthread_mutex_init(&array->lock, NULL);
 }
 
 // Add elements to the array, expanding capacity as necessary
 void insertElement(CustomArray *array, int element) {
+    pthread_mutex_lock(&array->lock);
     if (array->size == array->capacity) {
         size_t new_capacity = array->capacity * 2;
         resizeArray(array, new_capacity);
@@ -73,27 +76,35 @@ void insertElement(CustomArray *array, int element) {
     } else {
         array->data[array->size++] = element;
     }
+    pthread_mutex_unlock(&array->lock);
 }
 
 // Remove elements from the array and compact the memory
 void deleteElement(CustomArray *array, size_t index) {
+    pthread_mutex_lock(&array->lock);
     if (index >= array->size) {
         fprintf(stderr, "Index out of bounds\n");
+        pthread_mutex_unlock(&array->lock);
         return;
     }
     for (size_t i = index; i < array->size - 1; i++) {
         array->data[i] = array->data[i + 1];
     }
     array->size--;
+    pthread_mutex_unlock(&array->lock);
 }
 
 // Access elements by index
 int getElement(CustomArray *array, size_t index) {
+    pthread_mutex_lock(&array->lock);
     if (index >= array->size) {
         fprintf(stderr, "Index out of bounds\n");
+        pthread_mutex_unlock(&array->lock);
         return -1;
     }
-    return array->data[index];
+    int value = array->data[index];
+    pthread_mutex_unlock(&array->lock);
+    return value;
 }
 
 // Dynamically resize the array to optimize memory usage
@@ -113,16 +124,20 @@ void resizeArray(CustomArray *array, size_t new_capacity) {
 
 // Free the array memory
 void freeArray(CustomArray *array) {
+    pthread_mutex_lock(&array->lock);
     freeToPool(array->data);
     freeToPool(array->deleted_indices);
     array->data = NULL;
     array->size = 0;
     array->capacity = 0;
     array->deleted_count = 0;
+    pthread_mutex_unlock(&array->lock);
+    pthread_mutex_destroy(&array->lock);
 }
 
 // Garbage Collection: Reclaim memory from deleted elements
 void garbageCollect(CustomArray *array) {
+    pthread_mutex_lock(&array->lock);
     size_t new_size = 0;
     for (size_t i = 0; i < array->size; i++) {
         if (array->data[i] != -1) {
@@ -131,5 +146,40 @@ void garbageCollect(CustomArray *array) {
     }
     array->size = new_size;
     array->deleted_count = 0;
+    pthread_mutex_unlock(&array->lock);
+}
+
+// Lock-free versions of the functions (for high-performance scenarios)
+
+void insertElementLockFree(CustomArray *array, int element) {
+    if (array->size == array->capacity) {
+        size_t new_capacity = array->capacity * 2;
+        resizeArray(array, new_capacity);
+    }
+    if (array->deleted_count > 0) {
+        size_t index = array->deleted_indices[--array->deleted_count];
+        array->data[index] = element;
+    } else {
+        array->data[array->size++] = element;
+    }
+}
+
+void deleteElementLockFree(CustomArray *array, size_t index) {
+    if (index >= array->size) {
+        fprintf(stderr, "Index out of bounds\n");
+        return;
+    }
+    for (size_t i = index; i < array->size - 1; i++) {
+        array->data[i] = array->data[i + 1];
+    }
+    array->size--;
+}
+
+int getElementLockFree(CustomArray *array, size_t index) {
+    if (index >= array->size) {
+        fprintf(stderr, "Index out of bounds\n");
+        return -1;
+    }
+    return array->data[index];
 }
 

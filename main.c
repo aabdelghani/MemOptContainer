@@ -1,16 +1,27 @@
 #include "custom_array.h"
 #include <stdio.h>
+#include <pthread.h>
+#define MEMORY_POOL_SIZE 4
 
 void printArray(CustomArray *array) {
     for (size_t i = 0; i < array->size; i++) {
-        printf("%d ", getElement(array, i));
+        printf("%d \t", getElement(array, i));
     }
     printf("\n");
 }
 
+void *threadFunction(void *arg) {
+    CustomArray *array = (CustomArray *)arg;
+    
+    for (int i = 0; i < MEMORY_POOL_SIZE; i++) {
+        insertElement(array, i);
+    }
+    return NULL;
+}
+
 int main() {
-    // Initialize memory pool with 100 elements of size `int`
-    initMemoryPool(sizeof(int) * 100, 100);
+    // Initialize memory pool with # elements of size `int`
+    initMemoryPool(sizeof(int) * MEMORY_POOL_SIZE, MEMORY_POOL_SIZE);
 
     CustomArray array;
     
@@ -18,22 +29,16 @@ int main() {
     initArray(&array, 4);
     printf("Array initialized with capacity 4.\n");
     
-    // Insertion
-    insertElement(&array, 10);
-    insertElement(&array, 20);
-    insertElement(&array, 30);
-    insertElement(&array, 40);
-    printf("Elements inserted: ");
-    printArray(&array);
+    // Create threads for concurrent insertion
+    pthread_t thread1, thread2;
+    pthread_create(&thread1, NULL, threadFunction, &array);
+    pthread_create(&thread2, NULL, threadFunction, &array);
+
+    // Wait for threads to finish
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
     
-    // Resize
-    printf("Resizing array to capacity 10.\n");
-    resizeArray(&array, 10);
-    printf("New capacity: %zu\n", array.capacity);
-    
-    // Insertion after resize
-    insertElement(&array, 50);
-    printf("Element 50 inserted after resizing: ");
+    printf("Elements inserted concurrently: ");
     printArray(&array);
     
     // Access

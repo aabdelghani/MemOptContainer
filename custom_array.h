@@ -2,6 +2,7 @@
 #define CUSTOM_ARRAY_H
 
 #include <stdlib.h>
+#include <pthread.h>
 
 typedef struct {
     int *data;
@@ -9,6 +10,7 @@ typedef struct {
     size_t capacity;
     size_t deleted_count;  // Track the number of deleted elements
     size_t *deleted_indices;  // Track the indices of deleted elements
+    pthread_mutex_t lock;  // Mutex for thread safety
 } CustomArray;
 
 // Function declarations for custom array
@@ -25,6 +27,11 @@ void initMemoryPool(size_t element_size, size_t element_count);
 void *allocateFromPool();
 void freeToPool(void *element);
 void destroyMemoryPool();
+
+// Function declarations for lock-free custom array (for high-performance scenarios)
+void insertElementLockFree(CustomArray *array, int element);
+void deleteElementLockFree(CustomArray *array, size_t index);
+int getElementLockFree(CustomArray *array, size_t index);
 
 #endif // CUSTOM_ARRAY_H
 

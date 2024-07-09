@@ -12,5 +12,5 @@ add_library(custom_array STATIC custom_array.c)
 add_executable(main main.c)
 
 # Link the custom array library to the main executable
-target_link_libraries(main PRIVATE custom_array)
+target_link_libraries(main PRIVATE custom_array pthread)
 
