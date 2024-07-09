@@ -5,7 +5,11 @@ extern "C" {
 #include "custom_array.h"  // Include your custom array header
 }
 
-// Function to benchmark std::vector
+/**
+ * Benchmark the performance of std::vector.
+ * 
+ * @param numElements Number of elements to benchmark
+ */
 void benchmarkStdVector(size_t numElements) {
     std::vector<int> vec;
     auto start = std::chrono::high_resolution_clock::now();
@@ -30,7 +34,11 @@ void benchmarkStdVector(size_t numElements) {
     std::cout << "std::vector: " << duration.count() << " seconds\n";
 }
 
-// Function to benchmark custom array
+/**
+ * Benchmark the performance of CustomArray.
+ * 
+ * @param numElements Number of elements to benchmark
+ */
 void benchmarkCustomArray(size_t numElements) {
     CustomArray array;
     initArray(&array, numElements);
@@ -60,6 +68,9 @@ void benchmarkCustomArray(size_t numElements) {
     destroyMemoryPool();
 }
 
+/**
+ * Main function to run the benchmarks.
+ */
 int main() {
     const size_t numElements = 1000;
 
