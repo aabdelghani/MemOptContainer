@@ -88,7 +88,7 @@ The custom array implementation provides the following functionalities:
 
 9. Error Handling:
    - Log errors for out-of-memory situations, invalid index access, and memory reallocation failures.
-   - The log messages are written to "error_log.txt" without timestamps.
+   - The log messages are written to "error_log.txt" with timestamps.
 
 
 Notes
